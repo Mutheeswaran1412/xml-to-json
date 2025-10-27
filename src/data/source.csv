@@ -1,0 +1,5 @@
+id,name,type,description,input_data,output_data
+1,Data Input,input,Read source data,file_path,dataset
+2,Data Cleansing,transform,Clean and validate data,dataset,clean_dataset
+3,Data Analysis,process,Analyze cleaned data,clean_dataset,analysis_results
+4,Data Output,output,Export results,analysis_results,output_file

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileCode2, Upload, LogIn, LogOut, User, History, Package, ArrowLeft, Menu, X } from 'lucide-react';
+import { User, ArrowLeft, Menu, X } from 'lucide-react';
 import { convertXmlToJson, detectFileType } from './utils/converter';
 import { supabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';

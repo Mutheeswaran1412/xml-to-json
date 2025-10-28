@@ -43,11 +43,11 @@ function xmlToJson(xml: Element | Document, preserveAttributes = true): any {
   let obj: any = {};
 
   if (xml instanceof Document) {
-    return xmlToJson(xml.documentElement);
+    return xmlToJson(xml.documentElement, preserveAttributes);
   }
 
   if (xml.nodeType === 1) {
-    if (xml.attributes.length > 0) {
+    if (preserveAttributes && xml.attributes.length > 0) {
       obj['@attributes'] = {};
       for (let j = 0; j < xml.attributes.length; j++) {
         const attribute = xml.attributes.item(j);
@@ -90,14 +90,14 @@ function xmlToJson(xml: Element | Document, preserveAttributes = true): any {
       }
 
       if (typeof obj[nodeName] === 'undefined') {
-        obj[nodeName] = xmlToJson(item as Element);
+        obj[nodeName] = xmlToJson(item as Element, preserveAttributes);
       } else {
         if (typeof obj[nodeName].push === 'undefined') {
           const old = obj[nodeName];
           obj[nodeName] = [];
           obj[nodeName].push(old);
         }
-        obj[nodeName].push(xmlToJson(item as Element));
+        obj[nodeName].push(xmlToJson(item as Element, preserveAttributes));
       }
     }
   }

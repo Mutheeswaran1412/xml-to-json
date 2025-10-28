@@ -1,3 +1,5 @@
+/* CSS linter may show warnings for @tailwind - this is normal and expected */
+/* These directives are processed by PostCSS during build */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

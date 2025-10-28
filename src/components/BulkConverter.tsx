@@ -254,7 +254,9 @@ export function BulkConverter() {
                         <AlertCircle className="w-5 h-5 text-red-500" />
                       )}
                       <button
+                        type="button"
                         onClick={() => removeFile(conversion.id)}
+                        title="Remove file"
                         className="p-1 text-gray-400 hover:text-red-400 transition-colors"
                       >
                         <X className="w-5 h-5" />

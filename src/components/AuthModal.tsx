@@ -57,7 +57,9 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full relative">
         <button
+          type="button"
           onClick={onClose}
+          title="Close modal"
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
         >
           <X className="w-6 h-6" />
@@ -145,6 +147,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
           <div className="mt-6 text-center">
             <button
+              type="button"
               onClick={toggleMode}
               className="text-orange-400 hover:text-orange-300 font-medium text-sm transition-colors"
             >

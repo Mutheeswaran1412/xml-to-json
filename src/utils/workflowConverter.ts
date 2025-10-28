@@ -19,7 +19,6 @@ export interface CloudWorkflow {
 
 export function convertYxmdToJson(csvData: string): CloudWorkflow {
   const lines = csvData.trim().split('\n');
-  const headers = lines[0].split(',');
   
   const steps: WorkflowStep[] = lines.slice(1).map(line => {
     const values = line.split(',');

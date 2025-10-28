@@ -3,3 +3,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* Fix for browser compatibility warnings */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Fix appearance property compatibility */
+  button,
+  input[type="button"],
+  input[type="reset"],
+  input[type="submit"] {
+    -webkit-appearance: button;
+    appearance: button;
+  }
+
+  [type="search"] {
+    -webkit-appearance: textfield;
+    appearance: textfield;
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "XML to JSON Converter",
+  "short_name": "XML2JSON",
+  "description": "Convert XML files to JSON format with Alteryx workflow support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/trinity-logo.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/trinity-logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities", "developer"],
+  "screenshots": [
+    {
+      "src": "/images/trinity-logo.webp",
+      "sizes": "1280x720",
+      "type": "image/webp"
+    }
+  ]
+}

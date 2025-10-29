@@ -10,8 +10,13 @@ import { BulkConverter } from './components/BulkConverter';
 import { SettingsModal } from './components/SettingsModal';
 import { ApiDocs } from './components/ApiDocs';
 import { Tutorial } from './components/Tutorial';
+import { CloudStorage } from './components/CloudStorage';
+import { DatabaseExport } from './components/DatabaseExport';
+import { Integrations } from './components/Integrations';
+import { KnowledgeBase } from './components/KnowledgeBase';
+import { AdvancedAnalytics } from './components/AdvancedAnalytics';
 
-type ViewMode = 'converter' | 'history' | 'bulk' | 'api' | 'tutorial';
+type ViewMode = 'converter' | 'history' | 'bulk' | 'api' | 'tutorial' | 'cloud' | 'database' | 'integrations' | 'knowledge' | 'analytics';
 
 function App() {
   const { user, signOut } = useAuth();
@@ -194,6 +199,43 @@ function App() {
               >
                 Tutorial
               </button>
+              <div className="relative group">
+                <button className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                  More
+                </button>
+                <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-48">
+                  <button
+                    onClick={() => setActiveView('cloud')}
+                    className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-t-lg"
+                  >
+                    Cloud Storage
+                  </button>
+                  <button
+                    onClick={() => setActiveView('database')}
+                    className="block w-full text-left px-4 py-2 text-white hover:bg-white/10"
+                  >
+                    Database Export
+                  </button>
+                  <button
+                    onClick={() => setActiveView('integrations')}
+                    className="block w-full text-left px-4 py-2 text-white hover:bg-white/10"
+                  >
+                    Integrations
+                  </button>
+                  <button
+                    onClick={() => setActiveView('knowledge')}
+                    className="block w-full text-left px-4 py-2 text-white hover:bg-white/10"
+                  >
+                    Knowledge Base
+                  </button>
+                  <button
+                    onClick={() => setActiveView('analytics')}
+                    className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-b-lg"
+                  >
+                    Analytics
+                  </button>
+                </div>
+              </div>
 
               {user ? (
                 <div className="flex items-center gap-3">
@@ -453,6 +495,11 @@ function App() {
         {activeView === 'history' && <ConversionHistory />}
         {activeView === 'api' && <ApiDocs />}
         {activeView === 'tutorial' && <Tutorial />}
+        {activeView === 'cloud' && <CloudStorage />}
+        {activeView === 'database' && <DatabaseExport />}
+        {activeView === 'integrations' && <Integrations />}
+        {activeView === 'knowledge' && <KnowledgeBase />}
+        {activeView === 'analytics' && <AdvancedAnalytics />}
       </div>
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />

@@ -159,7 +159,6 @@ function cleanCache() {
 export function clearConversionCache() {
   conversionCache.clear();
 }
-}
 
 export function detectFileType(xmlString: string): 'yxmd' | 'generic' {
   // Enhanced detection with multiple checks

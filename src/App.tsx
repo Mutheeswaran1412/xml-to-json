@@ -16,7 +16,6 @@ import { Integrations } from './components/Integrations';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { AdvancedAnalytics } from './components/AdvancedAnalytics';
 import { EnhancedConverter } from './components/EnhancedConverter';
-import { supabase } from './lib/supabase';
 
 type ViewMode = 'converter' | 'history' | 'bulk' | 'api' | 'tutorial' | 'cloud' | 'database' | 'integrations' | 'knowledge' | 'analytics';
 

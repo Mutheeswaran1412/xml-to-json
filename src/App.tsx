@@ -145,7 +145,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <nav className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
+      <nav className="border-b border-white/10 bg-black/20 backdrop-blur-sm relative z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20 py-4">
             <div className="flex items-center gap-3">
@@ -209,7 +209,7 @@ function App() {
                   More
                 </button>
                 {showMoreMenu && (
-                  <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-[100] min-w-48 max-w-xs">
+                  <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-[9999] min-w-48 max-w-xs">
                   <button
                     onClick={() => { setActiveView('cloud'); setShowMoreMenu(false); }}
                     className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-t-lg"

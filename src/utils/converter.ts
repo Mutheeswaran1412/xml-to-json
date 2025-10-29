@@ -2,7 +2,10 @@ import { parseAlteryxWorkflow } from './workflowConverter';
 
 export async function convertXmlToJson(
   xmlString: string,
-  options?: { preserveAttributes?: boolean }
+  options?: { 
+    preserveAttributes?: boolean;
+    outputFormat?: 'pretty' | 'minified' | 'compact';
+  }
 ): Promise<string> {
   try {
     const trimmedXml = xmlString.trim();
@@ -32,7 +35,16 @@ export async function convertXmlToJson(
 
     // Use generic XML parser for other files
     const jsonObj = xmlToJson(xmlDoc.documentElement, options?.preserveAttributes ?? true);
-    return JSON.stringify(jsonObj, null, 2);
+    
+    const format = options?.outputFormat || 'pretty';
+    switch (format) {
+      case 'minified':
+        return JSON.stringify(jsonObj);
+      case 'compact':
+        return JSON.stringify(jsonObj, null, 1);
+      default:
+        return JSON.stringify(jsonObj, null, 2);
+    }
   } catch (error) {
     if (error instanceof Error) {
       throw error;

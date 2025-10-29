@@ -1,13 +1,17 @@
-import { useState } from 'react';
-import { User, ArrowLeft, Menu, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, ArrowLeft, Menu, X, Settings, Keyboard } from 'lucide-react';
 import { convertXmlToJson, detectFileType } from './utils/converter';
 import { supabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
+import { useSettings } from './contexts/SettingsContext';
 import { AuthModal } from './components/AuthModal';
 import { ConversionHistory } from './components/ConversionHistory';
 import { BulkConverter } from './components/BulkConverter';
+import { SettingsModal } from './components/SettingsModal';
+import { ApiDocs } from './components/ApiDocs';
+import { Tutorial } from './components/Tutorial';
 
-type ViewMode = 'converter' | 'history' | 'bulk';
+type ViewMode = 'converter' | 'history' | 'bulk' | 'api' | 'tutorial';
 
 function App() {
   const { user, signOut } = useAuth();
@@ -20,6 +24,33 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [fileType, setFileType] = useState<'yxmd' | 'generic' | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const { settings } = useSettings();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'Enter':
+            e.preventDefault();
+            if (xmlInput.trim()) handleConvert();
+            break;
+          case ',':
+            e.preventDefault();
+            setShowSettings(true);
+            break;
+          case '/':
+            e.preventDefault();
+            setShowKeyboardShortcuts(true);
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [xmlInput]);
 
   const handleConvert = async () => {
     setError('');
@@ -38,7 +69,10 @@ function App() {
       const detectedType = detectFileType(xmlInput);
       setFileType(detectedType);
 
-      const result = await convertXmlToJson(xmlInput);
+      const result = await convertXmlToJson(xmlInput, {
+        preserveAttributes: settings.preserveAttributes,
+        outputFormat: settings.outputFormat
+      });
       const endTime = performance.now();
       const conversionTime = Math.round(endTime - startTime);
 
@@ -144,6 +178,22 @@ function App() {
               >
                 History
               </button>
+              <button
+                onClick={() => setActiveView('api')}
+                className={`text-sm font-medium transition-colors ${
+                  activeView === 'api' ? 'text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                API
+              </button>
+              <button
+                onClick={() => setActiveView('tutorial')}
+                className={`text-sm font-medium transition-colors ${
+                  activeView === 'tutorial' ? 'text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Tutorial
+              </button>
 
               {user ? (
                 <div className="flex items-center gap-3">
@@ -165,6 +215,12 @@ function App() {
                     className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
                   >
                     Sign in
+                  </button>
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setShowAuthModal(true)}
@@ -202,6 +258,22 @@ function App() {
                 }`}
               >
                 History
+              </button>
+              <button
+                onClick={() => { setActiveView('api'); setShowMobileMenu(false); }}
+                className={`block w-full text-left px-4 py-2 rounded-lg ${
+                  activeView === 'api' ? 'bg-white/10 text-white' : 'text-gray-400'
+                }`}
+              >
+                API
+              </button>
+              <button
+                onClick={() => { setActiveView('tutorial'); setShowMobileMenu(false); }}
+                className={`block w-full text-left px-4 py-2 rounded-lg ${
+                  activeView === 'tutorial' ? 'bg-white/10 text-white' : 'text-gray-400'
+                }`}
+              >
+                Tutorial
               </button>
               {!user && (
                 <button
@@ -323,22 +395,46 @@ function App() {
                       >
                         Copy
                       </button>
-                      <button
-                        onClick={() => {
-                          const blob = new Blob([jsonOutput], { type: 'application/json' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = 'converted.json';
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition-colors"
-                      >
-                        Download
-                      </button>
+                      <div className="relative group">
+                        <button className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition-colors">
+                          Download
+                        </button>
+                        <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                          <button
+                            onClick={() => {
+                              const blob = new Blob([jsonOutput], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'converted.json';
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-t-lg whitespace-nowrap"
+                          >
+                            Pretty JSON
+                          </button>
+                          <button
+                            onClick={() => {
+                              const minified = JSON.stringify(JSON.parse(jsonOutput));
+                              const blob = new Blob([minified], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'converted-minified.json';
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-b-lg whitespace-nowrap"
+                          >
+                            Minified JSON
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -355,9 +451,43 @@ function App() {
 
         {activeView === 'bulk' && <BulkConverter />}
         {activeView === 'history' && <ConversionHistory />}
+        {activeView === 'api' && <ApiDocs />}
+        {activeView === 'tutorial' && <Tutorial />}
       </div>
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      
+      {/* Keyboard Shortcuts Modal */}
+      {showKeyboardShortcuts && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-white/10 rounded-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <Keyboard className="w-6 h-6 text-blue-400" />
+                <h2 className="text-xl font-semibold text-white">Keyboard Shortcuts</h2>
+              </div>
+              <button onClick={() => setShowKeyboardShortcuts(false)} className="text-gray-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300">Convert XML</span>
+                <kbd className="px-2 py-1 bg-gray-700 rounded text-sm text-gray-300">Ctrl+Enter</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300">Open Settings</span>
+                <kbd className="px-2 py-1 bg-gray-700 rounded text-sm text-gray-300">Ctrl+,</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300">Show Shortcuts</span>
+                <kbd className="px-2 py-1 bg-gray-700 rounded text-sm text-gray-300">Ctrl+/</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

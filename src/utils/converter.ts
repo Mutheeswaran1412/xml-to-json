@@ -7,6 +7,11 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 export function validateXmlSyntax(xmlString: string): Array<{line: number, message: string}> {
   const errors: Array<{line: number, message: string}> = [];
   
+  // Skip validation for YXMD files as they have special format
+  if (detectFileType(xmlString) === 'yxmd') {
+    return errors; // No validation errors for YXMD files
+  }
+  
   try {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
@@ -22,25 +27,6 @@ export function validateXmlSyntax(xmlString: string): Array<{line: number, messa
         message: errorText.replace(/^.*?error:\s*/i, '').trim()
       });
     }
-    
-    // Additional validation checks
-    const lines = xmlString.split('\n');
-    lines.forEach((line, index) => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('<?') && !trimmed.startsWith('<!--')) {
-        // Check for unclosed tags
-        const openTags = (trimmed.match(/<[^/][^>]*[^/]>/g) || []).length;
-        const closeTags = (trimmed.match(/<\/[^>]+>/g) || []).length;
-        const selfClosing = (trimmed.match(/<[^>]*\/>/g) || []).length;
-        
-        if (openTags > closeTags + selfClosing && trimmed.includes('<')) {
-          errors.push({
-            line: index + 1,
-            message: 'Possible unclosed tag detected'
-          });
-        }
-      }
-    });
   } catch (error) {
     errors.push({
       line: 1,
@@ -80,10 +66,6 @@ export async function convertXmlToJson(
       throw new Error('XML content is empty');
     }
 
-    if (!trimmedXml.startsWith('<')) {
-      throw new Error('Invalid XML: Content must start with a tag');
-    }
-
     // Check cache first
     const useCache = options?.useCache ?? true;
     if (useCache) {
@@ -94,26 +76,32 @@ export async function convertXmlToJson(
       }
     }
 
-    // Process namespaces and CDATA
-    const processedXml = processCDATA(processNamespaces(trimmedXml));
-
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(processedXml, 'text/xml');
-
-    const parserError = xmlDoc.querySelector('parsererror');
-    if (parserError) {
-      throw new Error('Invalid XML: ' + parserError.textContent);
-    }
-
     let result: string;
+    const fileType = detectFileType(trimmedXml);
 
-    // Check if this is an Alteryx workflow and use specialized parser
-    const fileType = detectFileType(processedXml);
     if (fileType === 'yxmd') {
-      const alteryxWorkflow = parseAlteryxWorkflow(processedXml);
-      result = formatJsonOutput(alteryxWorkflow, options?.outputFormat);
+      // Direct parsing for YXMD files without XML validation
+      try {
+        const alteryxWorkflow = parseAlteryxWorkflow(trimmedXml);
+        result = formatJsonOutput(alteryxWorkflow, options?.outputFormat);
+      } catch (yxmdError) {
+        throw new Error('Failed to parse Alteryx workflow: ' + (yxmdError instanceof Error ? yxmdError.message : 'Unknown error'));
+      }
     } else {
-      // Use generic XML parser for other files
+      // Standard XML validation for generic files
+      if (!trimmedXml.startsWith('<')) {
+        throw new Error('Invalid XML: Content must start with a tag');
+      }
+
+      const processedXml = processCDATA(processNamespaces(trimmedXml));
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(processedXml, 'text/xml');
+
+      const parserError = xmlDoc.querySelector('parsererror');
+      if (parserError) {
+        throw new Error('Invalid XML: ' + parserError.textContent);
+      }
+
       const jsonObj = xmlToJson(xmlDoc.documentElement, options?.preserveAttributes ?? true);
       result = formatJsonOutput(jsonObj, options?.outputFormat);
     }

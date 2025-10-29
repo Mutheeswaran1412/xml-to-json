@@ -29,6 +29,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [fileType, setFileType] = useState<'yxmd' | 'generic' | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const { settings } = useSettings();
@@ -200,42 +201,47 @@ function App() {
               >
                 Tutorial
               </button>
-              <div className="relative group">
-                <button className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+              <div className="relative">
+                <button 
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                >
                   More
                 </button>
-                <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-48">
+                {showMoreMenu && (
+                  <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-[100] min-w-48 max-w-xs">
                   <button
-                    onClick={() => setActiveView('cloud')}
+                    onClick={() => { setActiveView('cloud'); setShowMoreMenu(false); }}
                     className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-t-lg"
                   >
                     Cloud Storage
                   </button>
                   <button
-                    onClick={() => setActiveView('database')}
+                    onClick={() => { setActiveView('database'); setShowMoreMenu(false); }}
                     className="block w-full text-left px-4 py-2 text-white hover:bg-white/10"
                   >
                     Database Export
                   </button>
                   <button
-                    onClick={() => setActiveView('integrations')}
+                    onClick={() => { setActiveView('integrations'); setShowMoreMenu(false); }}
                     className="block w-full text-left px-4 py-2 text-white hover:bg-white/10"
                   >
                     Integrations
                   </button>
                   <button
-                    onClick={() => setActiveView('knowledge')}
+                    onClick={() => { setActiveView('knowledge'); setShowMoreMenu(false); }}
                     className="block w-full text-left px-4 py-2 text-white hover:bg-white/10"
                   >
                     Knowledge Base
                   </button>
                   <button
-                    onClick={() => setActiveView('analytics')}
+                    onClick={() => { setActiveView('analytics'); setShowMoreMenu(false); }}
                     className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-b-lg"
                   >
                     Analytics
                   </button>
-                </div>
+                  </div>
+                )}
               </div>
 
               {user ? (

@@ -100,7 +100,7 @@ function App() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20 py-4">
             <div className="flex items-center gap-3">
-              <img src="./images/trinity-logo.webp" alt="Trinity Logo" className="w-40 h-16" />
+              <img src="/images/trinity-logo.webp" alt="Trinity Logo" className="w-40 h-16" />
             </div>
 
             <button

@@ -15,7 +15,7 @@ import { DatabaseExport } from './components/DatabaseExport';
 import { Integrations } from './components/Integrations';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { AdvancedAnalytics } from './components/AdvancedAnalytics';
-import { EnhancedConverter } from './components/EnhancedConverter';
+import { SimpleConverter } from './components/SimpleConverter';
 
 type ViewMode = 'converter' | 'history' | 'bulk' | 'api' | 'tutorial' | 'cloud' | 'database' | 'integrations' | 'knowledge' | 'analytics';
 
@@ -294,14 +294,14 @@ function App() {
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-white mb-4">
-                Enhanced XML to JSON Converter
+                XML to JSON Converter
               </h1>
               <p className="text-gray-400 text-lg">
-                Advanced converter with drag & drop, real-time validation, syntax highlighting, and split-view interface.
+                Convert XML files to JSON format with specialized Alteryx workflow support.
               </p>
             </div>
             
-            <EnhancedConverter onConvert={handleConversionComplete} />
+            <SimpleConverter onConvert={handleConversionComplete} />
             
             <footer className="mt-16 pt-8 border-t border-white/10 text-center">
               <p className="text-gray-400 text-sm mb-2">

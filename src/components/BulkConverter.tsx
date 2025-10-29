@@ -93,10 +93,16 @@ export function BulkConverter() {
               // Sanitize input
               const sanitizedXml = securityManager.sanitizeXmlInput(xmlContent);
               
-              // Validate XML structure
-              const validation = securityManager.validateXmlStructure(sanitizedXml);
-              if (!validation.isValid) {
-                throw new Error(`Invalid XML: ${validation.errors.join(', ')}`);
+              // Skip XML validation for YXMD files
+              const isYxmdFile = conversion.file.name.toLowerCase().endsWith('.yxmd') || 
+                               sanitizedXml.includes('AlteryxDocument');
+              
+              if (!isYxmdFile) {
+                // Validate XML structure only for non-YXMD files
+                const validation = securityManager.validateXmlStructure(sanitizedXml);
+                if (!validation.isValid) {
+                  throw new Error(`Invalid XML: ${validation.errors.join(', ')}`);
+                }
               }
 
               // Update progress
@@ -118,7 +124,7 @@ export function BulkConverter() {
               );
 
               // Detect file type
-              const fileType = sanitizedXml.includes('AlteryxDocument') ? 'yxmd' : 'generic';
+              const fileType = isYxmdFile ? 'yxmd' : 'generic';
 
               setConversions(prev =>
                 prev.map(c =>

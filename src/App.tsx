@@ -203,7 +203,7 @@ function App() {
                 <button className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
                   More
                 </button>
-                <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-48">
+                <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-48">
                   <button
                     onClick={() => setActiveView('cloud')}
                     className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-t-lg"

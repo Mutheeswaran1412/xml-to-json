@@ -15,6 +15,8 @@ import { DatabaseExport } from './components/DatabaseExport';
 import { Integrations } from './components/Integrations';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { AdvancedAnalytics } from './components/AdvancedAnalytics';
+import { EnhancedConverter } from './components/EnhancedConverter';
+import { supabase } from './lib/supabase';
 
 type ViewMode = 'converter' | 'history' | 'bulk' | 'api' | 'tutorial' | 'cloud' | 'database' | 'integrations' | 'knowledge' | 'analytics';
 
@@ -58,71 +60,21 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [xmlInput]);
 
-  const handleConvert = async () => {
-    setError('');
-    setSuccess('');
-    setJsonOutput('');
-
-    if (!xmlInput.trim()) {
-      setError('Please enter XML content to convert');
-      return;
-    }
-
-    setIsConverting(true);
-    const startTime = performance.now();
-
-    try {
-      const detectedType = detectFileType(xmlInput);
-      setFileType(detectedType);
-
-      const result = await convertXmlToJson(xmlInput, {
-        preserveAttributes: settings.preserveAttributes,
-        outputFormat: settings.outputFormat
-      });
-      const endTime = performance.now();
-      const conversionTime = Math.round(endTime - startTime);
-
-      setJsonOutput(result);
-      let successMsg = `Conversion successful! (${conversionTime}ms)`;
-      if (detectedType === 'yxmd') {
-        try {
-          const parsed = JSON.parse(result);
-          successMsg += ` - Alteryx workflow: ${parsed.tools?.length || 0} tools, ${parsed.connections?.length || 0} connections`;
-        } catch {
-          successMsg += ' - Alteryx workflow detected';
-        }
-      }
-      setSuccess(successMsg);
-
-      if (user) {
+  const handleConversionComplete = async (xmlInput: string, result: string, conversionTime: number, fileType: string) => {
+    if (user) {
+      try {
         await supabase.from('conversions').insert({
           user_id: user.id,
-          filename: 'Manual Input',
+          filename: 'Enhanced Converter',
           xml_input: xmlInput,
           json_output: result,
           file_size: new Blob([xmlInput]).size,
           conversion_time_ms: conversionTime,
           status: 'success',
         });
+      } catch (error) {
+        console.error('Failed to save conversion:', error);
       }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to convert XML to JSON';
-      setError(errorMsg);
-
-      if (user) {
-        await supabase.from('conversions').insert({
-          user_id: user.id,
-          filename: 'Manual Input',
-          xml_input: xmlInput,
-          json_output: null,
-          file_size: new Blob([xmlInput]).size,
-          conversion_time_ms: 0,
-          status: 'error',
-          error_message: errorMsg,
-        });
-      }
-    } finally {
-      setIsConverting(false);
     }
   };
 
@@ -340,160 +292,21 @@ function App() {
 
       <div className="container mx-auto px-4 py-12">
         {activeView === 'converter' && (
-          <div className="max-w-5xl mx-auto">
-            <button className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors" title="Back to Tools">
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm">Back to Tools</span>
-            </button>
-
-            <div className="grid lg:grid-cols-2 gap-8 items-start">
-              <div>
-                <h1 className="text-4xl font-bold text-white mb-4">
-                  XML to JSON Converter
-                </h1>
-                <p className="text-gray-400 text-lg mb-8">
-                  Easily convert any XML (Extensible Markup Language) file or snippet to JSON (Javascript Object Notation) with trinity, a low-code workflow automation tool.
-                </p>
-              </div>
-
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                <label className="block text-white text-lg font-medium mb-4">
-                  XML to convert
-                </label>
-
-                <div className="relative">
-                  <textarea
-                    value={xmlInput}
-                    onChange={(e) => setXmlInput(e.target.value)}
-                    placeholder='[&#10;  {&#10;    "Index": "1",&#10;    "User Id": "88F7B33d2bcf9f5",&#10;    "First Name": "Shelby",&#10;    "Last Name": "Terrell"&#10;  }&#10;]'
-                    className="w-full h-64 bg-purple-950/50 border border-purple-500/30 rounded-xl p-4 text-gray-300 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-                    spellCheck={false}
-                  />
-
-                  <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-400">
-                    <span>Alternatively, drop or</span>
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept=".xml,text/xml,.yxmd"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                      <span className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors">
-                        upload
-                      </span>
-                    </label>
-                    <span>xml file here (max 2mb)</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleConvert}
-                  disabled={isConverting || !xmlInput.trim()}
-                  className="w-full mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all"
-                >
-                  {isConverting ? 'Converting...' : 'Convert XML to JSON'}
-                </button>
-
-                {error && (
-                  <div className="mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
-                    {error}
-                  </div>
-                )}
-
-                {success && (
-                  <div className="mt-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg text-green-300 text-sm">
-                    {success}
-                  </div>
-                )}
-
-                {jsonOutput && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="text-white text-lg font-medium">JSON Output</label>
-                      <div className="flex items-center gap-2">
-                        {fileType && (
-                          <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/50 text-blue-300 text-xs font-medium rounded">
-                            {fileType === 'yxmd' ? 'Alteryx Workflow' : 'Generic XML'}
-                          </span>
-                        )}
-                        {fileType === 'yxmd' && (() => {
-                          try {
-                            const parsed = JSON.parse(jsonOutput);
-                            return (
-                              <span className="px-2 py-1 bg-green-500/20 border border-green-500/50 text-green-300 text-xs font-medium rounded">
-                                {parsed.tools?.length || 0} Tools, {parsed.connections?.length || 0} Connections
-                              </span>
-                            );
-                          } catch {
-                            return null;
-                          }
-                        })()}
-                      </div>
-                    </div>
-                    <pre className="w-full h-64 bg-purple-950/50 border border-purple-500/30 rounded-xl p-4 text-gray-300 font-mono text-sm overflow-auto">
-                      {jsonOutput}
-                    </pre>
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(jsonOutput);
-                          setSuccess('Copied to clipboard!');
-                          setTimeout(() => setSuccess(''), 2000);
-                        }}
-                        className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition-colors"
-                      >
-                        Copy
-                      </button>
-                      <div className="relative group">
-                        <button className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition-colors">
-                          Download
-                        </button>
-                        <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                          <button
-                            onClick={() => {
-                              const blob = new Blob([jsonOutput], { type: 'application/json' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = 'converted.json';
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
-                            }}
-                            className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-t-lg whitespace-nowrap"
-                          >
-                            Pretty JSON
-                          </button>
-                          <button
-                            onClick={() => {
-                              const minified = JSON.stringify(JSON.parse(jsonOutput));
-                              const blob = new Blob([minified], { type: 'application/json' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = 'converted-minified.json';
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
-                            }}
-                            className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded-b-lg whitespace-nowrap"
-                          >
-                            Minified JSON
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-white mb-4">
+                Enhanced XML to JSON Converter
+              </h1>
+              <p className="text-gray-400 text-lg">
+                Advanced converter with drag & drop, real-time validation, syntax highlighting, and split-view interface.
+              </p>
             </div>
-
+            
+            <EnhancedConverter onConvert={handleConversionComplete} />
+            
             <footer className="mt-16 pt-8 border-t border-white/10 text-center">
               <p className="text-gray-400 text-sm mb-2">
-                Trinity Technology Solutions - XML to JSON Converter
+                Trinity Technology Solutions - Enhanced XML to JSON Converter
               </p>
             </footer>
           </div>

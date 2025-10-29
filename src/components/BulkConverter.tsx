@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Upload, Download, X, FileCode2, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, Download, X, FileCode2, CheckCircle2, AlertCircle, Loader2, BarChart3 } from 'lucide-react';
 import { convertXmlToJson } from '../utils/converter';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { performanceManager, processInBatches } from '../utils/performance';
+import { securityManager } from '../utils/security';
 
 interface FileConversion {
   id: string;
@@ -10,20 +12,42 @@ interface FileConversion {
   status: 'pending' | 'converting' | 'success' | 'error';
   jsonOutput?: string;
   error?: string;
+  progress?: number;
+  conversionTime?: number;
+  fileType?: string;
 }
 
 export function BulkConverter() {
   const { user } = useAuth();
   const [conversions, setConversions] = useState<FileConversion[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
 
-    const newConversions: FileConversion[] = Array.from(files).map(file => ({
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    Array.from(files).forEach(file => {
+      const validation = securityManager.validateFile(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+      } else {
+        errors.push(`${file.name}: ${validation.errors.join(', ')}`);
+      }
+    });
+
+    if (errors.length > 0) {
+      alert(`Some files were rejected:\n${errors.join('\n')}`);
+    }
+
+    const newConversions: FileConversion[] = validFiles.map(file => ({
       id: Math.random().toString(36).substring(7),
       file,
       status: 'pending',
+      progress: 0,
     }));
 
     setConversions(prev => [...prev, ...newConversions]);
@@ -45,66 +69,131 @@ export function BulkConverter() {
   };
 
   const convertAll = async () => {
-    for (const conversion of conversions) {
-      if (conversion.status !== 'pending') continue;
+    const pendingConversions = conversions.filter(c => c.status === 'pending');
+    if (pendingConversions.length === 0) return;
 
-      setConversions(prev =>
-        prev.map(c => c.id === conversion.id ? { ...c, status: 'converting' } : c)
-      );
+    setIsProcessing(true);
+    setOverallProgress(0);
 
-      try {
-        const xmlContent = await conversion.file.text();
-        const startTime = performance.now();
-        const jsonOutput = await convertXmlToJson(xmlContent);
-        const endTime = performance.now();
-        const conversionTime = Math.round(endTime - startTime);
+    try {
+      // Process in batches for better performance
+      await processInBatches(
+        pendingConversions,
+        3, // Process 3 files at a time
+        async (batch) => {
+          const promises = batch.map(async (conversion) => {
+            // Update status to converting
+            setConversions(prev =>
+              prev.map(c => c.id === conversion.id ? { ...c, status: 'converting', progress: 0 } : c)
+            );
 
-        setConversions(prev =>
-          prev.map(c =>
-            c.id === conversion.id
-              ? { ...c, status: 'success', jsonOutput }
-              : c
-          )
-        );
+            try {
+              const xmlContent = await conversion.file.text();
+              
+              // Sanitize input
+              const sanitizedXml = securityManager.sanitizeXmlInput(xmlContent);
+              
+              // Validate XML structure
+              const validation = securityManager.validateXmlStructure(sanitizedXml);
+              if (!validation.isValid) {
+                throw new Error(`Invalid XML: ${validation.errors.join(', ')}`);
+              }
 
-        if (user) {
-          await supabase.from('conversions').insert({
-            user_id: user.id,
-            filename: conversion.file.name,
-            xml_input: xmlContent,
-            json_output: jsonOutput,
-            file_size: conversion.file.size,
-            conversion_time_ms: conversionTime,
-            status: 'success',
-          });
-        }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Conversion failed';
-        setConversions(prev =>
-          prev.map(c =>
-            c.id === conversion.id
-              ? {
-                  ...c,
-                  status: 'error',
-                  error: errorMsg,
+              // Update progress
+              setConversions(prev =>
+                prev.map(c => c.id === conversion.id ? { ...c, progress: 25 } : c)
+              );
+
+              const startTime = performance.now();
+              const jsonOutput = await performanceManager.measurePerformance(
+                `convert_${conversion.file.name}`,
+                () => convertXmlToJson(sanitizedXml, { useCache: true })
+              );
+              const endTime = performance.now();
+              const conversionTime = Math.round(endTime - startTime);
+
+              // Update progress
+              setConversions(prev =>
+                prev.map(c => c.id === conversion.id ? { ...c, progress: 75 } : c)
+              );
+
+              // Detect file type
+              const fileType = sanitizedXml.includes('AlteryxDocument') ? 'yxmd' : 'generic';
+
+              setConversions(prev =>
+                prev.map(c =>
+                  c.id === conversion.id
+                    ? { 
+                        ...c, 
+                        status: 'success', 
+                        jsonOutput, 
+                        progress: 100,
+                        conversionTime,
+                        fileType
+                      }
+                    : c
+                )
+              );
+
+              // Save to database
+              if (user) {
+                await supabase.from('conversions').insert({
+                  user_id: user.id,
+                  filename: conversion.file.name,
+                  xml_input: xmlContent,
+                  json_output: jsonOutput,
+                  file_size: conversion.file.size,
+                  conversion_time_ms: conversionTime,
+                  status: 'success',
+                });
+              }
+
+            } catch (error) {
+              const errorMsg = error instanceof Error ? error.message : 'Conversion failed';
+              setConversions(prev =>
+                prev.map(c =>
+                  c.id === conversion.id
+                    ? {
+                        ...c,
+                        status: 'error',
+                        error: errorMsg,
+                        progress: 0
+                      }
+                    : c
+                )
+              );
+
+              // Save error to database
+              if (user) {
+                try {
+                  await supabase.from('conversions').insert({
+                    user_id: user.id,
+                    filename: conversion.file.name,
+                    xml_input: await conversion.file.text(),
+                    json_output: null,
+                    file_size: conversion.file.size,
+                    conversion_time_ms: 0,
+                    status: 'error',
+                    error_message: errorMsg,
+                  });
+                } catch (dbError) {
+                  console.error('Failed to save error to database:', dbError);
                 }
-              : c
-          )
-        );
-
-        if (user) {
-          await supabase.from('conversions').insert({
-            user_id: user.id,
-            filename: conversion.file.name,
-            xml_input: await conversion.file.text(),
-            json_output: null,
-            file_size: conversion.file.size,
-            conversion_time_ms: 0,
-            status: 'error',
-            error_message: errorMsg,
+              }
+            }
           });
+
+          await Promise.all(promises);
+          
+          // Update overall progress
+          const completed = conversions.filter(c => c.status === 'success' || c.status === 'error').length;
+          const total = conversions.length;
+          setOverallProgress((completed / total) * 100);
         }
-      }
+      );
+    } finally {
+      setIsProcessing(false);
+      setOverallProgress(100);
     }
   };
 
@@ -196,10 +285,31 @@ export function BulkConverter() {
                   {pendingCount > 0 && (
                     <button
                       onClick={convertAll}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      disabled={isProcessing}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
                     >
-                      Convert All
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Convert All'
+                      )}
                     </button>
+                  )}
+                  
+                  {isProcessing && (
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-blue-400" />
+                      <div className="w-32 bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${overallProgress}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-gray-400">{Math.round(overallProgress)}%</span>
+                    </div>
                   )}
                   {successCount > 0 && (
                     <button
@@ -231,9 +341,28 @@ export function BulkConverter() {
                         <p className="text-white font-medium truncate">
                           {conversion.file.name}
                         </p>
-                        <p className="text-gray-400 text-sm">
-                          {(conversion.file.size / 1024).toFixed(1)} KB
-                        </p>
+                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                          <span>{(conversion.file.size / 1024).toFixed(1)} KB</span>
+                          {conversion.fileType && (
+                            <span className="px-1 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded">
+                              {conversion.fileType === 'yxmd' ? 'Alteryx' : 'XML'}
+                            </span>
+                          )}
+                          {conversion.conversionTime && (
+                            <span className="text-green-400">{conversion.conversionTime}ms</span>
+                          )}
+                        </div>
+                        {conversion.status === 'converting' && conversion.progress !== undefined && (
+                          <div className="mt-2">
+                            <div className="w-full bg-gray-700 rounded-full h-1.5">
+                              <div 
+                                className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                                style={{ width: `${conversion.progress}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">{conversion.progress}% complete</p>
+                          </div>
+                        )}
                         {conversion.error && (
                           <p className="text-red-400 text-sm mt-1">{conversion.error}</p>
                         )}

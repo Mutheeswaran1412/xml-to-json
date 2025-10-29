@@ -185,50 +185,42 @@ export function EnhancedConverter({ onConvert }: EnhancedConverterProps) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`flex-1 border-2 border-dashed rounded-lg p-4 transition-all ${
+          className={`flex-1 border-2 border-dashed rounded-lg p-4 transition-all relative ${
             isDragging 
               ? 'border-blue-500 bg-blue-500/10' 
               : 'border-white/20 hover:border-white/30'
           }`}
         >
-          {xmlInput ? (
-            <div className="h-full flex flex-col">
-              <div 
-                className="flex-1 bg-gray-900/50 rounded p-3 font-mono text-sm overflow-auto"
-                dangerouslySetInnerHTML={{ 
-                  __html: highlightXml(xmlInput.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'))
-                }}
-              />
-              {validationErrors.length > 0 && (
-                <div className="mt-2 max-h-20 overflow-y-auto">
-                  {validationErrors.map((error, index) => (
-                    <div key={index} className="text-red-400 text-xs">
-                      Line {error.line}: {error.message}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center">
-              <Upload className="w-12 h-12 text-gray-500 mb-4" />
-              <p className="text-white font-medium mb-2">Drop XML files here</p>
-              <p className="text-gray-400 text-sm mb-4">or click to browse</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xml,.yxmd,text/xml"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
-              >
-                Select File
-              </button>
-            </div>
-          )}
+          <div className="h-full flex flex-col">
+            <textarea
+              value={xmlInput}
+              onChange={(e) => setXmlInput(e.target.value)}
+              className="flex-1 bg-gray-900/50 rounded p-3 font-mono text-sm text-white resize-none border-none outline-none"
+              placeholder="Paste your XML content here or drag & drop files..."
+            />
+            {!xmlInput && (
+              <div className="absolute inset-4 flex flex-col items-center justify-center pointer-events-none">
+                <Upload className="w-8 h-8 text-gray-500 mb-2" />
+                <p className="text-gray-400 text-sm">Paste XML or drop files here</p>
+              </div>
+            )}
+            {validationErrors.length > 0 && (
+              <div className="mt-2 max-h-20 overflow-y-auto">
+                {validationErrors.map((error, index) => (
+                  <div key={index} className="text-red-400 text-xs">
+                    Line {error.line}: {error.message}
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xml,.yxmd,text/xml"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </div>
         </div>
 
         {/* Input Controls */}
@@ -243,7 +235,21 @@ export function EnhancedConverter({ onConvert }: EnhancedConverterProps) {
             onClick={() => fileInputRef.current?.click()}
             className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
           >
-            Upload File
+            Browse File
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                setXmlInput(text);
+                setError('');
+              } catch {
+                setError('Failed to read clipboard. Please paste manually.');
+              }
+            }}
+            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
+          >
+            Paste Text
           </button>
           <button
             onClick={handleConvert}

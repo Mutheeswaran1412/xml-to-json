@@ -154,6 +154,7 @@ function App() {
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="lg:hidden text-white p-2"
+              title="Toggle mobile menu"
             >
               {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -261,6 +262,7 @@ function App() {
                   <button
                     onClick={() => setShowSettings(true)}
                     className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                    title="Open settings"
                   >
                     <Settings className="w-4 h-4" />
                   </button>
@@ -333,7 +335,7 @@ function App() {
       <div className="container mx-auto px-4 py-12">
         {activeView === 'converter' && (
           <div className="max-w-5xl mx-auto">
-            <button className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
+            <button className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors" title="Back to Tools">
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm">Back to Tools</span>
             </button>
@@ -514,7 +516,7 @@ function App() {
                 <Keyboard className="w-6 h-6 text-blue-400" />
                 <h2 className="text-xl font-semibold text-white">Keyboard Shortcuts</h2>
               </div>
-              <button onClick={() => setShowKeyboardShortcuts(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowKeyboardShortcuts(false)} className="text-gray-400 hover:text-white" title="Close shortcuts">
                 <X className="w-6 h-6" />
               </button>
             </div>

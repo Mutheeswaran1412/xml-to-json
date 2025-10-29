@@ -1,3 +1,5 @@
+import { parseAlteryxWorkflow } from './workflowConverter';
+
 export async function convertXmlToJson(
   xmlString: string,
   options?: { preserveAttributes?: boolean }
@@ -21,8 +23,15 @@ export async function convertXmlToJson(
       throw new Error('Invalid XML: ' + parserError.textContent);
     }
 
-    const jsonObj = xmlToJson(xmlDoc.documentElement, options?.preserveAttributes ?? true);
+    // Check if this is an Alteryx workflow and use specialized parser
+    const fileType = detectFileType(trimmedXml);
+    if (fileType === 'yxmd') {
+      const alteryxWorkflow = parseAlteryxWorkflow(trimmedXml);
+      return JSON.stringify(alteryxWorkflow, null, 2);
+    }
 
+    // Use generic XML parser for other files
+    const jsonObj = xmlToJson(xmlDoc.documentElement, options?.preserveAttributes ?? true);
     return JSON.stringify(jsonObj, null, 2);
   } catch (error) {
     if (error instanceof Error) {
@@ -33,7 +42,10 @@ export async function convertXmlToJson(
 }
 
 export function detectFileType(xmlString: string): 'yxmd' | 'generic' {
-  if (xmlString.includes('AlteryxDocument') || xmlString.includes('Properties')) {
+  if (xmlString.includes('AlteryxDocument') || 
+      xmlString.includes('<Node ToolID=') || 
+      xmlString.includes('<Connection Origin=') ||
+      xmlString.includes('GuiSettings Plugin=')) {
     return 'yxmd';
   }
   return 'generic';

@@ -43,7 +43,16 @@ function App() {
       const conversionTime = Math.round(endTime - startTime);
 
       setJsonOutput(result);
-      setSuccess(`Conversion successful! (${conversionTime}ms)${detectedType === 'yxmd' ? ' - Alteryx workflow detected' : ''}`);
+      let successMsg = `Conversion successful! (${conversionTime}ms)`;
+      if (detectedType === 'yxmd') {
+        try {
+          const parsed = JSON.parse(result);
+          successMsg += ` - Alteryx workflow: ${parsed.tools?.length || 0} tools, ${parsed.connections?.length || 0} connections`;
+        } catch {
+          successMsg += ' - Alteryx workflow detected';
+        }
+      }
+      setSuccess(successMsg);
 
       if (user) {
         await supabase.from('conversions').insert({
@@ -280,11 +289,25 @@ function App() {
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-3">
                       <label className="text-white text-lg font-medium">JSON Output</label>
-                      {fileType && (
-                        <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/50 text-blue-300 text-xs font-medium rounded">
-                          {fileType === 'yxmd' ? 'Alteryx Workflow' : 'Generic XML'}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {fileType && (
+                          <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/50 text-blue-300 text-xs font-medium rounded">
+                            {fileType === 'yxmd' ? 'Alteryx Workflow' : 'Generic XML'}
+                          </span>
+                        )}
+                        {fileType === 'yxmd' && (() => {
+                          try {
+                            const parsed = JSON.parse(jsonOutput);
+                            return (
+                              <span className="px-2 py-1 bg-green-500/20 border border-green-500/50 text-green-300 text-xs font-medium rounded">
+                                {parsed.tools?.length || 0} Tools, {parsed.connections?.length || 0} Connections
+                              </span>
+                            );
+                          } catch {
+                            return null;
+                          }
+                        })()}
+                      </div>
                     </div>
                     <pre className="w-full h-64 bg-purple-950/50 border border-purple-500/30 rounded-xl p-4 text-gray-300 font-mono text-sm overflow-auto">
                       {jsonOutput}
